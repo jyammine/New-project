@@ -1,0 +1,57 @@
+# Run the whole shop locally or on a single server:
+#   cp .env.example .env    # then fill in PAYLOAD_SECRET, SERVER_URL, Stripe keys…
+#   docker compose up -d --build
+#   docker compose run --rm tools pnpm seed   # optional demo content
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: littlenest
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-littlenest}
+      POSTGRES_DB: littlenest
+    # Only reachable from this machine (for `pnpm dev`); the app container uses the internal network.
+    ports:
+      - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U littlenest -d littlenest']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://littlenest:${POSTGRES_PASSWORD:-littlenest}@db:5432/littlenest
+    ports:
+      - '3000:3000'
+    volumes:
+      - media:/app/media
+
+  # One-off tasks (seeding, migrations). Not started by `docker compose up`.
+  tools:
+    build:
+      context: .
+      target: tools
+    profiles: ['tools']
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://littlenest:${POSTGRES_PASSWORD:-littlenest}@db:5432/littlenest
+    volumes:
+      - media:/app/media
+
+volumes:
+  pgdata:
+  media:
