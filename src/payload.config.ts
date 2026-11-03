@@ -36,6 +36,7 @@ import { Users } from './collections/Users'
 import { Footer } from './globals/Footer'
 import { Header } from './globals/Header'
 import { SiteSettings } from './globals/SiteSettings'
+import { bootstrap } from './lib/bootstrap'
 import { ALL_CACHE_TAGS, revalidateTags } from './lib/revalidate'
 import { getServerSideURL } from './lib/urls'
 import { migrations } from './migrations'
@@ -173,6 +174,7 @@ export default buildConfig({
   email,
   sharp,
   plugins,
+  onInit: bootstrap,
   upload: {
     limits: { fileSize: 15_000_000 },
   },

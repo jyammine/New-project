@@ -4,7 +4,7 @@
  *   pnpm seed            # only seeds an empty database
  *   pnpm seed reset      # deletes products, pages, media and orders first (or SEED_RESET=true)
  *
- * Set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD to also create an admin account.
+ * Set INITIAL_ADMIN_EMAIL and INITIAL_ADMIN_PASSWORD to also create an admin account.
  */
 import config from '@payload-config'
 import { getPayload } from 'payload'
@@ -15,8 +15,9 @@ const payload = await getPayload({ config })
 
 // `payload run` only forwards positional arguments, so the flag is written without dashes.
 const reset = process.argv.slice(2).includes('reset') || process.env.SEED_RESET === 'true'
-const email = process.env.SEED_ADMIN_EMAIL
-const password = process.env.SEED_ADMIN_PASSWORD
+// SEED_ADMIN_* are the older names for the same settings.
+const email = process.env.INITIAL_ADMIN_EMAIL || process.env.SEED_ADMIN_EMAIL
+const password = process.env.INITIAL_ADMIN_PASSWORD || process.env.SEED_ADMIN_PASSWORD
 
 try {
   const result = await seed(payload, {

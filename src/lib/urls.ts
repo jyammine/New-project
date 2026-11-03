@@ -1,14 +1,22 @@
 /**
  * Public URL of the site. `SERVER_URL` is read at runtime, so one build can be deployed to any
  * domain; `NEXT_PUBLIC_SERVER_URL` is supported for compatibility with Payload's templates.
+ * Without either, the address assigned by the hosting platform is used.
  */
 export const getServerSideURL = (): string => {
+  const platformUrl =
+    process.env.RENDER_EXTERNAL_URL ||
+    (process.env.RAILWAY_PUBLIC_DOMAIN
+      ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+      : undefined) ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : undefined)
   const url =
     process.env.SERVER_URL ||
     process.env.NEXT_PUBLIC_SERVER_URL ||
-    (process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : 'http://localhost:3000')
+    platformUrl ||
+    'http://localhost:3000'
   return url.replace(/\/$/, '')
 }
 

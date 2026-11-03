@@ -52,10 +52,10 @@ In development the database schema is synced automatically. To fill the shop wit
 pages and illustrations:
 
 ```bash
-SEED_ADMIN_EMAIL=you@example.com SEED_ADMIN_PASSWORD='a-long-password' pnpm seed
+INITIAL_ADMIN_EMAIL=you@example.com INITIAL_ADMIN_PASSWORD='a-long-password' pnpm seed
 ```
 
-Then open <http://localhost:3000/admin> and log in. Without the `SEED_ADMIN_*` variables, visit
+Then open <http://localhost:3000/admin> and log in. Without the `INITIAL_ADMIN_*` variables, visit
 `/admin` and create the first account yourself — **the first account is always an administrator**.
 
 `pnpm seed` only runs on an empty database. `pnpm seed reset` deletes existing products, pages,
@@ -81,6 +81,8 @@ Copy `.env.example` to `.env`. Only the first three are required.
 | `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE` |          | Store uploads in S3, Cloudflare R2, DigitalOcean Spaces, MinIO… instead of local disk.                                             |
 | `MEDIA_DIR`                                                                                                |          | Folder for uploads when using local disk (default `./media`).                                                                      |
 | `DATABASE_POOL_MAX`                                                                                        |          | Max database connections per app instance (default 10).                                                                            |
+| `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD`                                                            |          | Creates the first administrator on start-up while there are no staff accounts (password 12+ characters).                           |
+| `SEED_DEMO_CONTENT`                                                                                        |          | `true` loads the demo products and pages on start-up while the shop has no products.                                               |
 
 ---
 
@@ -150,7 +152,29 @@ direct database edits), click **Refresh site cache** on the dashboard.
 The app is a single Node.js service plus a Postgres database. Database migrations run automatically
 when the app starts in production.
 
-### Option A — Docker Compose on a server (simplest)
+### Option A — Render (one click)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/jyammine/New-project)
+
+`render.yaml` describes everything Render needs: the web service (built from the `Dockerfile`), a
+Postgres database, a 1 GB disk for uploaded images, and a generated `PAYLOAD_SECRET`.
+
+1. Click the button above (or in Render: **New → Blueprint** and pick this repository) and sign in
+   with GitHub.
+2. Enter `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` (12+ characters) when asked — this is
+   your login for `/admin`. Then click **Apply** / **Deploy Blueprint**.
+3. Wait for the first build (5–10 minutes). The first start also loads the demo shop, which takes
+   about half a minute.
+4. Open the `https://little-nest-….onrender.com` address shown on the service page, and
+   `/admin` for the CMS.
+
+Costs: persistent disks need a paid instance, so the Blueprint uses Render’s smallest paid web
+instance (Starter) and its default paid Postgres plan — roughly $15 a month together at the time of
+writing; check [Render’s pricing](https://render.com/pricing). To take orders later, add the Stripe
+and SMTP variables under the service’s **Environment** tab, and set `SERVER_URL` when you connect your
+own domain. Pushing to the deployed branch redeploys automatically.
+
+### Option B — Docker Compose on a server
 
 On any VPS (Hetzner, DigitalOcean, Lightsail, …) with Docker installed:
 
@@ -167,13 +191,15 @@ Put a reverse proxy with HTTPS in front of port 3000 (Caddy, Nginx, Traefik, or 
 balancer). Uploaded images are stored in the `media` volume and the database in `pgdata` — back up
 both.
 
-### Option B — Container platforms (Railway, Render, Fly.io, Google Cloud Run, …)
+### Option C — Other container platforms (Railway, Fly.io, Google Cloud Run, …)
 
 Build the `Dockerfile` (default target is the production image), attach a managed Postgres database,
 and set the environment variables above. Configure S3-compatible storage for uploads unless the
-platform offers a persistent disk. The health check endpoint is `GET /api/health`.
+platform offers a persistent disk. The health check endpoint is `GET /api/health`. The image starts
+as root only long enough to make the media folder writable, then runs the app as an unprivileged
+user. Render and Railway addresses are detected automatically; elsewhere set `SERVER_URL`.
 
-### Option C — Vercel or other serverless hosts
+### Option D — Vercel or other serverless hosts
 
 Works with a managed Postgres (Neon, Supabase, Vercel Postgres) and **S3 storage is required** because
 the filesystem is not persistent. Set `DATABASE_POOL_MAX` low (e.g. `3`) or use a pooled connection

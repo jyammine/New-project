@@ -10,3 +10,7 @@ process.env.SERVER_URL ||= 'http://localhost:3000'
 process.env.STRIPE_SECRET_KEY = 'sk_test_integration'
 process.env.STRIPE_WEBHOOK_SECRET = 'whsec_integration_test_secret'
 delete process.env.SMTP_HOST
+// First-start setup is tested separately; keep it off so tests start from an empty database.
+delete process.env.INITIAL_ADMIN_EMAIL
+delete process.env.INITIAL_ADMIN_PASSWORD
+delete process.env.SEED_DEMO_CONTENT
